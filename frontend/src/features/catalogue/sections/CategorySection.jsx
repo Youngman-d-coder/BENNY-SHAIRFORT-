@@ -2,52 +2,20 @@
 import { Link } from 'react-router-dom'
 import { ArrowUpRight } from 'lucide-react'
 
-const categories = [
-  {
-    id: 'bone-straight',
-    name: 'Bone Straight',
-    description: 'Sleek. Smooth. Timeless.',
-    number: '01',
-    style: 'from-[#493448] to-[#171319]',
-  },
-  {
-    id: 'body-wave',
-    name: 'Body Wave',
-    description: 'Soft waves. Effortless elegance.',
-    number: '02',
-    style: 'from-[#39252F] to-[#171319]',
-  },
-  {
-    id: 'deep-wave',
-    name: 'Deep Wave',
-    description: 'Defined waves. Bold beauty.',
-    number: '03',
-    style: 'from-[#302632] to-[#171319]',
-  },
-  {
-    id: 'curly-hair',
-    name: 'Curly Hair',
-    description: 'Texture with personality.',
-    number: '04',
-    style: 'from-[#44322D] to-[#171319]',
-  },
-  {
-    id: 'closures',
-    name: 'Closures',
-    description: 'The perfect finishing touch.',
-    number: '05',
-    style: 'from-[#332B37] to-[#171319]',
-  },
-  {
-    id: 'frontals',
-    name: 'Frontals',
-    description: 'Versatility meets elegance.',
-    number: '06',
-    style: 'from-[#3C2930] to-[#171319]',
-  },
+import { getActiveCategories } from '../../categories/services/categoryService'
+
+const CATEGORY_STYLES = [
+  'from-[#493448] to-[#171319]',
+  'from-[#39252F] to-[#171319]',
+  'from-[#302632] to-[#171319]',
+  'from-[#44322D] to-[#171319]',
+  'from-[#332B37] to-[#171319]',
+  'from-[#3C2930] to-[#171319]',
 ]
 
 export default function CategorySection() {
+  const categories = getActiveCategories()
+
   return (
     <section className="mx-auto max-w-7xl px-6 py-24 md:py-32">
       <div className="mb-12 flex flex-col justify-between gap-5 md:flex-row md:items-end">
@@ -75,36 +43,44 @@ export default function CategorySection() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {categories.map((category) => (
-          <Link
-            key={category.id}
-            to={`/catalogue?category=${category.id}`}
-            className={`group relative flex min-h-52 flex-col justify-between overflow-hidden border border-white/10 bg-gradient-to-br ${category.style} p-7 transition-all duration-300 hover:-translate-y-1 hover:border-gold/50`}
-          >
-            <div className="flex items-start justify-between">
-              <span className="text-xs tracking-[0.25em] text-gold/70">
-                {category.number}
-              </span>
+      {categories.length > 0 ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {categories.map((category, index) => (
+            <Link
+              key={category.id}
+              to={`/catalogue?category=${encodeURIComponent(category.slug)}`}
+              className={`group relative flex min-h-52 flex-col justify-between overflow-hidden border border-white/10 bg-gradient-to-br ${
+                CATEGORY_STYLES[index % CATEGORY_STYLES.length]
+              } p-7 transition-all duration-300 hover:-translate-y-1 hover:border-gold/50`}
+            >
+              <div className="flex items-start justify-between">
+                <span className="text-xs tracking-[0.25em] text-gold/70">
+                  {String(index + 1).padStart(2, '0')}
+                </span>
 
-              <ArrowUpRight
-                size={19}
-                className="text-champagne/50 transition-all duration-300 group-hover:-translate-y-1 group-hover:translate-x-1 group-hover:text-gold"
-              />
-            </div>
+                <ArrowUpRight
+                  size={19}
+                  className="text-champagne/50 transition-all duration-300 group-hover:-translate-y-1 group-hover:translate-x-1 group-hover:text-gold"
+                />
+              </div>
 
-            <div>
-              <h3 className="font-display text-2xl text-champagne md:text-3xl">
-                {category.name}
-              </h3>
+              <div>
+                <h3 className="font-display text-2xl text-champagne md:text-3xl">
+                  {category.name}
+                </h3>
 
-              <p className="mt-2 text-sm text-champagne/50">
-                {category.description}
-              </p>
-            </div>
-          </Link>
-        ))}
-      </div>
+                <p className="mt-2 text-sm text-champagne/50">
+                  {category.description || 'Explore styles in this collection.'}
+                </p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      ) : (
+        <p className="border border-white/10 bg-[#171319] px-6 py-12 text-center text-sm text-champagne/50">
+          Our collections are being updated. Please check back soon.
+        </p>
+      )}
     </section>
   )
 }

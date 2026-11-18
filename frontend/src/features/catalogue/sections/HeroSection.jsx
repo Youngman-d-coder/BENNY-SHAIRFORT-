@@ -1,10 +1,6 @@
+import { Link } from "react-router-dom";
 
-import { Link } from 'react-router-dom'
-
-export default function HeroSection({
-  videoSrc = '',
-  posterSrc = '',
-}) {
+export default function HeroSection({ videoSrc = "", posterSrc = "" }) {
   return (
     <section className="relative isolate flex min-h-[680px] items-center overflow-hidden bg-midnight md:min-h-[760px]">
       {/* Background media */}
@@ -34,15 +30,12 @@ export default function HeroSection({
 
           <h1 className="font-display text-5xl leading-[1.12] text-champagne sm:text-6xl md:text-7xl lg:text-8xl">
             Discover
-            <span className="block italic text-gold">
-              Your Crown.
-            </span>
+            <span className="block italic text-gold">Your Crown.</span>
           </h1>
 
           <p className="mt-8 max-w-xl text-base leading-8 text-champagne/70 md:text-lg">
-            Exquisite hair. Exceptional elegance.
-            Discover a collection designed to complement
-            your beauty, confidence and individuality.
+            Exquisite hair. Exceptional elegance. Discover a collection designed
+            to complement your beauty, confidence and individuality.
           </p>
 
           <div className="mt-10 flex flex-wrap items-center gap-4">
@@ -67,5 +60,5 @@ export default function HeroSection({
         BENNY'SHAIRFORT
       </div>
     </section>
-  )
+  );
 }

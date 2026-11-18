@@ -11,6 +11,9 @@ import AdminDashboardPage from '../features/admin/pages/AdminDashboardPage'
 import AdminSettingsPage from '../features/admin/pages/AdminSettingsPage'
 import AdminEnquiriesPage from '../features/admin/pages/AdminEnquiriesPage'
 import AdminProductsPage from '../features/admin/pages/AdminProductsPage'
+import AdminCategoriesPage from '../features/admin/pages/AdminCategoriesPage'
+import ContactPage from '../features/catalogue/pages/ContactPage'
+import AboutPage from '../features/catalogue/pages/AboutPage'
 
 
 function PlaceholderPage({ title }) {
@@ -39,14 +42,14 @@ export default function AppRouter() {
           <Route path="/" element={<HomePage />} />
           <Route path="/catalogue" element={<CataloguePage />} />
           <Route path="/product/:slug" element={<ProductDetailPage />} />
-          <Route path="/about" element={<PlaceholderPage title="About Us" />} />
-          <Route path="/contact" element={<PlaceholderPage title="Contact" />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/contact" element={<ContactPage />} />
         </Route>
 
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<AdminDashboardPage />} />
           <Route path="products" element={<AdminProductsPage />} />
-          <Route path="categories" element={<PlaceholderPage title="Categories" />} />
+          <Route path="categories" element={<AdminCategoriesPage />} />
           <Route path="enquiries" element={<AdminEnquiriesPage />} />
           <Route path="settings" element={<AdminSettingsPage />} />
         </Route>

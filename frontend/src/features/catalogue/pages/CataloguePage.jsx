@@ -1,77 +1,88 @@
+import { useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { Search, X, ArrowUpRight } from "lucide-react";
 
-import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Search, X, ArrowUpRight } from 'lucide-react'
-
-import ProductCard from '../components/ProductCard'
-import { getProducts } from '../data/products'
+import ProductCard from "../components/ProductCard";
+import { getProducts } from "../data/products";
+import { getActiveCategories } from "../../categories/services/categoryService";
 
 const SORT_OPTIONS = [
-  { value: 'featured', label: 'Featured first' },
-  { value: 'name-asc', label: 'Name: A to Z' },
-  { value: 'name-desc', label: 'Name: Z to A' },
-]
+  { value: "featured", label: "Featured first" },
+  { value: "name-asc", label: "Name: A to Z" },
+  { value: "name-desc", label: "Name: Z to A" },
+];
 
 export default function CataloguePage() {
-  const [products] = useState(() => getProducts())
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('all')
-  const [sortBy, setSortBy] = useState('featured')
+  const [products] = useState(() => getProducts());
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState("featured");
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const categories = useMemo(() => {
-    const uniqueCategories = new Map()
+  const selectedCategory = searchParams.get("category") || "all";
 
-    products.forEach((product) => {
-      if (product.category?.slug && product.category?.name) {
-        uniqueCategories.set(
-          product.category.slug,
-          product.category.name,
-        )
-      }
-    })
+  const categories = useMemo(() => getActiveCategories(), []);
 
-    return Array.from(uniqueCategories, ([slug, name]) => ({
-      slug,
-      name,
-    }))
-  }, [products])
+  const activeCategorySlugs = useMemo(
+    () => new Set(categories.map((category) => category.slug)),
+    [categories],
+  );
+
+  const visibleProducts = useMemo(
+    () =>
+      products.filter((product) =>
+        activeCategorySlugs.has(product.category?.slug),
+      ),
+    [products, activeCategorySlugs],
+  );
+
+  function selectCategory(slug) {
+    const nextParams = new URLSearchParams(searchParams);
+
+    if (slug === "all") {
+      nextParams.delete("category");
+    } else {
+      nextParams.set("category", slug);
+    }
+
+    setSearchParams(nextParams, { replace: true });
+  }
 
   const filteredProducts = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase()
+    const query = searchQuery.trim().toLowerCase();
 
-    const results = products.filter((product) => {
+    const results = visibleProducts.filter((product) => {
       const matchesSearch =
         !query ||
         product.name.toLowerCase().includes(query) ||
-        product.category.name.toLowerCase().includes(query)
+        product.category?.name?.toLowerCase().includes(query);
 
       const matchesCategory =
-        selectedCategory === 'all' ||
-        product.category.slug === selectedCategory
+        selectedCategory === "all" ||
+        product.category?.slug === selectedCategory;
 
-      return matchesSearch && matchesCategory
-    })
+      return matchesSearch && matchesCategory;
+    });
 
     return [...results].sort((a, b) => {
-      if (sortBy === 'name-asc') {
-        return a.name.localeCompare(b.name)
+      if (sortBy === "name-asc") {
+        return a.name.localeCompare(b.name);
       }
 
-      if (sortBy === 'name-desc') {
-        return b.name.localeCompare(a.name)
+      if (sortBy === "name-desc") {
+        return b.name.localeCompare(a.name);
       }
 
-      return Number(b.isFeatured) - Number(a.isFeatured)
-    })
-  }, [products, searchQuery, selectedCategory, sortBy])
+      return Number(b.isFeatured) - Number(a.isFeatured);
+    });
+  }, [visibleProducts, searchQuery, selectedCategory, sortBy]);
 
   const hasActiveFilters =
-    searchQuery.trim() !== '' || selectedCategory !== 'all'
+    searchQuery.trim() !== "" || selectedCategory !== "all";
 
   function clearFilters() {
-    setSearchQuery('')
-    setSelectedCategory('all')
-    setSortBy('featured')
+    setSearchQuery("");
+    setSortBy("featured");
+    selectCategory("all");
   }
 
   return (
@@ -88,14 +99,12 @@ export default function CataloguePage() {
             <div>
               <h1 className="max-w-3xl font-display text-5xl leading-tight text-champagne md:text-7xl">
                 Find your
-                <span className="block italic text-gold">
-                  signature look.
-                </span>
+                <span className="block italic text-gold">signature look.</span>
               </h1>
 
               <p className="mt-6 max-w-xl text-sm leading-8 text-champagne/55 md:text-base">
-                Explore styles that complement your beauty,
-                express your individuality and complete your crown.
+                Explore styles that complement your beauty, express your
+                individuality and complete your crown.
               </p>
             </div>
 
@@ -123,7 +132,7 @@ export default function CataloguePage() {
           </div>
 
           <p className="text-sm text-champagne/45">
-            {filteredProducts.length} of {products.length} styles
+            {filteredProducts.length} of {visibleProducts.length} styles
           </p>
         </div>
 
@@ -165,12 +174,12 @@ export default function CataloguePage() {
         <div className="mt-8 flex flex-wrap items-center gap-3">
           <button
             type="button"
-            onClick={() => setSelectedCategory('all')}
-            aria-pressed={selectedCategory === 'all'}
+            onClick={() => selectCategory("all")}
+            aria-pressed={selectedCategory === "all"}
             className={`border px-5 py-3 text-xs tracking-wider transition-colors ${
-              selectedCategory === 'all'
-                ? 'border-gold bg-gold text-obsidian'
-                : 'border-white/10 text-champagne/60 hover:border-gold/50 hover:text-gold'
+              selectedCategory === "all"
+                ? "border-gold bg-gold text-obsidian"
+                : "border-white/10 text-champagne/60 hover:border-gold/50 hover:text-gold"
             }`}
           >
             ALL STYLES
@@ -180,12 +189,12 @@ export default function CataloguePage() {
             <button
               key={category.slug}
               type="button"
-              onClick={() => setSelectedCategory(category.slug)}
+              onClick={() => selectCategory(category.slug)}
               aria-pressed={selectedCategory === category.slug}
               className={`border px-5 py-3 text-xs tracking-wider transition-colors ${
                 selectedCategory === category.slug
-                  ? 'border-gold bg-gold text-obsidian'
-                  : 'border-white/10 text-champagne/60 hover:border-gold/50 hover:text-gold'
+                  ? "border-gold bg-gold text-obsidian"
+                  : "border-white/10 text-champagne/60 hover:border-gold/50 hover:text-gold"
               }`}
             >
               {category.name.toUpperCase()}
@@ -213,10 +222,7 @@ export default function CataloguePage() {
         {filteredProducts.length > 0 ? (
           <div className="mt-12 grid grid-cols-1 gap-x-6 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">
             {filteredProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-              />
+              <ProductCard key={product.id} product={product} />
             ))}
           </div>
         ) : (
@@ -230,8 +236,8 @@ export default function CataloguePage() {
             </h3>
 
             <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-champagne/50">
-              We couldn't find any styles matching your search.
-              Try another name or explore a different category.
+              We couldn't find any styles matching your search. Try another name
+              or explore a different category.
             </p>
 
             <button
@@ -245,11 +251,11 @@ export default function CataloguePage() {
         )}
 
         <p className="mt-16 border-t border-white/10 pt-7 text-center text-xs leading-6 text-champagne/35">
-          The styles currently displayed are demonstration content.
-          Confirmed products, specifications, pricing and availability
-          will be published through Benny'shairfort.
+          The styles currently displayed are demonstration content. Confirmed
+          products, specifications, pricing and availability will be published
+          through Benny'shairfort.
         </p>
       </section>
     </main>
-  )
+  );
 }

@@ -6,7 +6,6 @@ import { getProductBySlug } from "../data/products";
 import ProductGallery from "../components/ProductGallery";
 import { prepareWhatsAppEnquiry } from "../../enquiries/services/whatsappEnquiryService";
 import WhatsAppEnquirySheet from "../../enquiries/components/WhatsAppEnquirySheet";
-import { recordWhatsAppClick } from "../../enquiries/services/enquiryAnalyticsService";
 
 const STATUS_LABELS = {
   available: "Available",
@@ -99,13 +98,6 @@ export default function ProductDetailPage() {
 
   function handleConfirmEnquiry() {
     if (!pendingEnquiry?.url) return;
-
-    // Record the customer's attempt to open WhatsApp.
-    // Analytics failure must never block the enquiry.
-    recordWhatsAppClick({
-      product,
-      variant: selectedVariant,
-    });
 
     window.open(pendingEnquiry.url, "_blank", "noopener,noreferrer");
 

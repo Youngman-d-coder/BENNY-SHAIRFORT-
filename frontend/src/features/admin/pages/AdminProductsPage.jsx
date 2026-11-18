@@ -1,5 +1,4 @@
-
-import { useMemo, useState } from 'react'
+import { useMemo, useState } from "react";
 import {
   Plus,
   Search,
@@ -9,7 +8,7 @@ import {
   Eye,
   EyeOff,
   X,
-} from 'lucide-react'
+} from "lucide-react";
 
 import {
   getProducts,
@@ -17,206 +16,242 @@ import {
   updateProduct,
   deleteProduct,
   PRODUCT_STATUSES,
-} from '../../catalogue/services/productService'
+} from "../../catalogue/services/productService";
+
+import {
+  getCategories,
+  createCategory,
+} from "../../categories/services/categoryService";
 
 const STATUS_LABELS = {
-  available: 'Available',
-  sold_out: 'Sold out',
-  reserved: 'Reserved',
-  hidden: 'Hidden',
-  coming_soon: 'Coming soon',
-}
+  available: "Available",
+  sold_out: "Sold out",
+  reserved: "Reserved",
+  hidden: "Hidden",
+  coming_soon: "Coming soon",
+};
 
 const STATUS_STYLES = {
-  available: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400',
-  sold_out: 'border-red-500/30 bg-red-500/10 text-red-400',
-  reserved: 'border-amber-500/30 bg-amber-500/10 text-amber-400',
-  hidden: 'border-white/10 bg-white/5 text-white/40',
-  coming_soon: 'border-blue-500/30 bg-blue-500/10 text-blue-400',
-}
+  available: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
+  sold_out: "border-red-500/30 bg-red-500/10 text-red-400",
+  reserved: "border-amber-500/30 bg-amber-500/10 text-amber-400",
+  hidden: "border-white/10 bg-white/5 text-white/40",
+  coming_soon: "border-blue-500/30 bg-blue-500/10 text-blue-400",
+};
 
 const EMPTY_FORM = {
-  name: '',
-  categoryName: '',
-  description: '',
-  price: '',
+  name: "",
+  categoryName: "",
+  categorySlug: "",
+  description: "",
+  price: "",
   status: PRODUCT_STATUSES.AVAILABLE,
   isFeatured: false,
   isNewArrival: false,
-}
+};
 
 function formatPrice(priceKobo) {
   if (priceKobo === null || priceKobo === undefined) {
-    return 'Price not set'
+    return "Price not set";
   }
 
-  return new Intl.NumberFormat('en-NG', {
-    style: 'currency',
-    currency: 'NGN',
+  return new Intl.NumberFormat("en-NG", {
+    style: "currency",
+    currency: "NGN",
     maximumFractionDigits: 0,
-  }).format(priceKobo / 100)
+  }).format(priceKobo / 100);
 }
 
 export default function AdminProductsPage() {
-  const [products, setProducts] = useState(() => getProducts())
-  const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
-  const [isFormOpen, setIsFormOpen] = useState(false)
-  const [editingId, setEditingId] = useState(null)
-  const [form, setForm] = useState(EMPTY_FORM)
-  const [feedback, setFeedback] = useState('')
+  const [products, setProducts] = useState(() => getProducts());
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [feedback, setFeedback] = useState("");
+  const [categories, setCategories] = useState(() => getCategories());
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
 
   const filteredProducts = useMemo(() => {
-    const query = search.trim().toLowerCase()
+    const query = search.trim().toLowerCase();
 
     return products.filter((product) => {
       const matchesSearch =
         !query ||
         product.name.toLowerCase().includes(query) ||
-        product.category?.name?.toLowerCase().includes(query)
+        product.category?.name?.toLowerCase().includes(query);
 
       const matchesStatus =
-        statusFilter === 'all' ||
-        product.status === statusFilter
+        statusFilter === "all" || product.status === statusFilter;
 
-      return matchesSearch && matchesStatus
-    })
-  }, [products, search, statusFilter])
+      return matchesSearch && matchesStatus;
+    });
+  }, [products, search, statusFilter]);
 
-  const counts = useMemo(() => ({
-    total: products.length,
-    available: products.filter(
-      (product) => product.status === PRODUCT_STATUSES.AVAILABLE,
-    ).length,
-    hidden: products.filter(
-      (product) => product.status === PRODUCT_STATUSES.HIDDEN,
-    ).length,
-    soldOut: products.filter(
-      (product) => product.status === PRODUCT_STATUSES.SOLD_OUT,
-    ).length,
-  }), [products])
+  const counts = useMemo(
+    () => ({
+      total: products.length,
+      available: products.filter(
+        (product) => product.status === PRODUCT_STATUSES.AVAILABLE,
+      ).length,
+      hidden: products.filter(
+        (product) => product.status === PRODUCT_STATUSES.HIDDEN,
+      ).length,
+      soldOut: products.filter(
+        (product) => product.status === PRODUCT_STATUSES.SOLD_OUT,
+      ).length,
+    }),
+    [products],
+  );
 
   function refreshProducts() {
-    setProducts(getProducts())
+    setProducts(getProducts());
+  }
+  function refreshCategories() {
+    setCategories(getCategories());
   }
 
   function openCreateForm() {
-    setEditingId(null)
-    setForm(EMPTY_FORM)
-    setFeedback('')
-    setIsFormOpen(true)
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+    setFeedback("");
+    setIsFormOpen(true);
   }
 
   function openEditForm(product) {
-    setEditingId(product.id)
+    const matchingCategory = categories.find(
+      (category) =>
+        category.slug === product.category?.slug ||
+        category.name.toLowerCase() === product.category?.name?.toLowerCase(),
+    );
+
+    setEditingId(product.id);
+
     setForm({
       name: product.name,
-      categoryName: product.category?.name ?? '',
-      description: product.description ?? '',
-      price: product.priceKobo !== null
-        ? String(product.priceKobo / 100)
-        : '',
+      categoryName: matchingCategory?.name ?? product.category?.name ?? "",
+      categorySlug: matchingCategory?.slug ?? product.category?.slug ?? "",
+      description: product.description ?? "",
+      price: product.priceKobo !== null ? String(product.priceKobo / 100) : "",
       status: product.status ?? PRODUCT_STATUSES.AVAILABLE,
       isFeatured: Boolean(product.isFeatured),
       isNewArrival: Boolean(product.isNewArrival),
-    })
-    setFeedback('')
-    setIsFormOpen(true)
+    });
+
+    setFeedback("");
+    setIsCreatingCategory(false);
+    setIsFormOpen(true);
   }
 
   function closeForm() {
-    setIsFormOpen(false)
-    setEditingId(null)
-    setForm(EMPTY_FORM)
+    setIsFormOpen(false);
+    setEditingId(null);
+    setForm(EMPTY_FORM);
   }
 
   function handleSubmit(event) {
-    event.preventDefault()
-    setFeedback('')
+    event.preventDefault();
+    setFeedback("");
 
-    const priceKobo = form.price.trim() === ''
-      ? null
-      : Math.round(Number(form.price) * 100)
+    const priceKobo =
+      form.price.trim() === "" ? null : Math.round(Number(form.price) * 100);
 
     if (
       priceKobo !== null &&
       (!Number.isSafeInteger(priceKobo) || priceKobo < 0)
     ) {
-      setFeedback('Enter a valid non-negative price.')
-      return
+      setFeedback("Enter a valid non-negative price.");
+      return;
+    }
+
+    const selectedCategory = categories.find(
+      (category) => category.slug === form.categorySlug,
+    );
+
+    if (!selectedCategory || !selectedCategory.isActive) {
+      setFeedback("Please select an active product category.");
+      return;
     }
 
     const data = {
       name: form.name.trim(),
       category: {
-        name: form.categoryName.trim(),
+        name: selectedCategory.name,
+        slug: selectedCategory.slug,
       },
       description: form.description.trim(),
       priceKobo,
       status: form.status,
       isFeatured: form.isFeatured,
       isNewArrival: form.isNewArrival,
-    }
+    };
 
     const result = editingId
       ? updateProduct(editingId, data)
-      : createProduct(data)
+      : createProduct(data);
 
     if (!result.success) {
-      setFeedback(result.message)
-      return
+      setFeedback(result.message);
+      return;
     }
 
-    refreshProducts()
-    closeForm()
-    setFeedback(editingId ? 'Product updated successfully.' : 'Product created successfully.')
+    refreshProducts();
+    closeForm();
+    setFeedback(
+      editingId
+        ? "Product updated successfully."
+        : "Product created successfully.",
+    );
   }
 
   function handleDelete(product) {
     const confirmed = window.confirm(
       `Delete "${product.name}"? This action cannot be undone.`,
-    )
+    );
 
-    if (!confirmed) return
+    if (!confirmed) return;
 
-    const result = deleteProduct(product.id)
+    const result = deleteProduct(product.id);
 
     if (!result.success) {
-      setFeedback(result.message)
-      return
+      setFeedback(result.message);
+      return;
     }
 
-    refreshProducts()
-    setFeedback('Product deleted successfully.')
+    refreshProducts();
+    setFeedback("Product deleted successfully.");
   }
 
   function toggleVisibility(product) {
-    const nextStatus = product.status === PRODUCT_STATUSES.HIDDEN
-      ? PRODUCT_STATUSES.AVAILABLE
-      : PRODUCT_STATUSES.HIDDEN
+    const nextStatus =
+      product.status === PRODUCT_STATUSES.HIDDEN
+        ? PRODUCT_STATUSES.AVAILABLE
+        : PRODUCT_STATUSES.HIDDEN;
 
     const result = updateProduct(product.id, {
       status: nextStatus,
-    })
+    });
 
     if (!result.success) {
-      setFeedback(result.message)
-      return
+      setFeedback(result.message);
+      return;
     }
 
-    refreshProducts()
+    refreshProducts();
     setFeedback(
       nextStatus === PRODUCT_STATUSES.HIDDEN
-        ? 'Product hidden from the storefront.'
-        : 'Product is now visible on the storefront.',
-    )
+        ? "Product hidden from the storefront."
+        : "Product is now visible on the storefront.",
+    );
   }
 
   function updateField(field, value) {
     setForm((current) => ({
       ...current,
       [field]: value,
-    }))
+    }));
   }
 
   return (
@@ -246,10 +281,10 @@ export default function AdminProductsPage() {
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {[
-          { label: 'Total products', value: counts.total },
-          { label: 'Available', value: counts.available },
-          { label: 'Sold out', value: counts.soldOut },
-          { label: 'Hidden', value: counts.hidden },
+          { label: "Total products", value: counts.total },
+          { label: "Available", value: counts.available },
+          { label: "Sold out", value: counts.soldOut },
+          { label: "Hidden", value: counts.hidden },
         ].map((item) => (
           <div
             key={item.label}
@@ -271,7 +306,7 @@ export default function AdminProductsPage() {
           {feedback}
           <button
             type="button"
-            onClick={() => setFeedback('')}
+            onClick={() => setFeedback("")}
             aria-label="Dismiss notification"
           >
             <X size={16} />
@@ -303,7 +338,9 @@ export default function AdminProductsPage() {
         >
           <option value="all">All statuses</option>
           {Object.entries(STATUS_LABELS).map(([value, label]) => (
-            <option key={value} value={value}>{label}</option>
+            <option key={value} value={value}>
+              {label}
+            </option>
           ))}
         </select>
       </div>
@@ -321,9 +358,7 @@ export default function AdminProductsPage() {
         {filteredProducts.length === 0 ? (
           <div className="px-6 py-16 text-center">
             <Package size={30} className="mx-auto text-gold/60" />
-            <p className="mt-4 text-sm text-champagne">
-              No products found.
-            </p>
+            <p className="mt-4 text-sm text-champagne">No products found.</p>
             <p className="mt-2 text-xs text-white/40">
               Try another search or add a new product.
             </p>
@@ -348,18 +383,22 @@ export default function AdminProductsPage() {
                         {product.name}
                       </div>
                       <div className="mt-1 text-xs text-white/35">
-                        {product.isDemo ? 'Demonstration product' : 'Custom product'}
+                        {product.isDemo
+                          ? "Demonstration product"
+                          : "Custom product"}
                       </div>
                     </td>
                     <td className="px-5 py-5 text-sm text-white/55">
-                      {product.category?.name || 'Uncategorised'}
+                      {product.category?.name || "Uncategorised"}
                     </td>
                     <td className="px-5 py-5 text-sm text-champagne">
                       {formatPrice(product.priceKobo)}
                     </td>
                     <td className="px-5 py-5">
-                      <span className={`inline-flex border px-3 py-1 text-[10px] tracking-wide ${STATUS_STYLES[product.status] ?? STATUS_STYLES.hidden}`}>
-                        {STATUS_LABELS[product.status] ?? 'Unspecified'}
+                      <span
+                        className={`inline-flex border px-3 py-1 text-[10px] tracking-wide ${STATUS_STYLES[product.status] ?? STATUS_STYLES.hidden}`}
+                      >
+                        {STATUS_LABELS[product.status] ?? "Unspecified"}
                       </span>
                     </td>
                     <td className="px-5 py-5">
@@ -376,13 +415,23 @@ export default function AdminProductsPage() {
                         <button
                           type="button"
                           onClick={() => toggleVisibility(product)}
-                          title={product.status === PRODUCT_STATUSES.HIDDEN ? 'Show product' : 'Hide product'}
-                          aria-label={product.status === PRODUCT_STATUSES.HIDDEN ? `Show ${product.name}` : `Hide ${product.name}`}
+                          title={
+                            product.status === PRODUCT_STATUSES.HIDDEN
+                              ? "Show product"
+                              : "Hide product"
+                          }
+                          aria-label={
+                            product.status === PRODUCT_STATUSES.HIDDEN
+                              ? `Show ${product.name}`
+                              : `Hide ${product.name}`
+                          }
                           className="p-2 text-white/45 transition-colors hover:text-gold"
                         >
-                          {product.status === PRODUCT_STATUSES.HIDDEN
-                            ? <Eye size={16} />
-                            : <EyeOff size={16} />}
+                          {product.status === PRODUCT_STATUSES.HIDDEN ? (
+                            <Eye size={16} />
+                          ) : (
+                            <EyeOff size={16} />
+                          )}
                         </button>
                         <button
                           type="button"
@@ -420,7 +469,7 @@ export default function AdminProductsPage() {
                   id="product-form-title"
                   className="mt-2 font-display text-2xl text-champagne"
                 >
-                  {editingId ? 'Edit product' : 'Add product'}
+                  {editingId ? "Edit product" : "Add product"}
                 </h2>
               </div>
               <button
@@ -441,7 +490,7 @@ export default function AdminProductsPage() {
                 <input
                   required
                   value={form.name}
-                  onChange={(event) => updateField('name', event.target.value)}
+                  onChange={(event) => updateField("name", event.target.value)}
                   placeholder="e.g. Signature Straight"
                   className="h-12 w-full border border-white/10 bg-black/20 px-4 text-sm text-champagne outline-none focus:border-gold/50"
                 />
@@ -451,13 +500,80 @@ export default function AdminProductsPage() {
                 <label className="mb-2 block text-xs text-white/55">
                   Category *
                 </label>
-                <input
+
+                <select
                   required
-                  value={form.categoryName}
-                  onChange={(event) => updateField('categoryName', event.target.value)}
-                  placeholder="e.g. Bone Straight"
-                  className="h-12 w-full border border-white/10 bg-black/20 px-4 text-sm text-champagne outline-none focus:border-gold/50"
-                />
+                  value={form.categorySlug}
+                  onChange={(event) => {
+                    const selectedCategory = categories.find(
+                      (category) => category.slug === event.target.value,
+                    );
+
+                    updateField("categorySlug", selectedCategory?.slug ?? "");
+                    updateField("categoryName", selectedCategory?.name ?? "");
+                  }}
+                  className="h-12 w-full border border-white/10 bg-[#171319] px-4 text-sm text-champagne outline-none focus:border-gold/50"
+                >
+                  <option value="">Select a category</option>
+
+                  {categories
+                    .filter((category) => category.isActive)
+                    .map((category) => (
+                      <option key={category.id} value={category.slug}>
+                        {category.name}
+                      </option>
+                    ))}
+                </select>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCreatingCategory((current) => !current);
+                    setNewCategoryName("");
+                  }}
+                  className="mt-3 text-xs text-gold transition-colors hover:text-champagne"
+                >
+                  {isCreatingCategory
+                    ? "Cancel new category"
+                    : "+ Create a new category"}
+                </button>
+
+                {isCreatingCategory && (
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                    <input
+                      value={newCategoryName}
+                      onChange={(event) =>
+                        setNewCategoryName(event.target.value)
+                      }
+                      placeholder="Enter category name"
+                      className="h-11 min-w-0 flex-1 border border-white/10 bg-black/20 px-4 text-sm text-champagne outline-none focus:border-gold/50"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const result = createCategory({
+                          name: newCategoryName.trim(),
+                        });
+
+                        if (!result.success) {
+                          setFeedback(result.message);
+                          return;
+                        }
+
+                        refreshCategories();
+                        updateField("categorySlug", result.category.slug);
+                        updateField("categoryName", result.category.name);
+                        setNewCategoryName("");
+                        setIsCreatingCategory(false);
+                        setFeedback("");
+                      }}
+                      className="h-11 bg-gold px-4 text-xs font-semibold text-obsidian hover:bg-champagne"
+                    >
+                      ADD CATEGORY
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -467,7 +583,9 @@ export default function AdminProductsPage() {
                 <textarea
                   rows={4}
                   value={form.description}
-                  onChange={(event) => updateField('description', event.target.value)}
+                  onChange={(event) =>
+                    updateField("description", event.target.value)
+                  }
                   placeholder="Describe this product..."
                   className="w-full border border-white/10 bg-black/20 p-4 text-sm text-champagne outline-none focus:border-gold/50"
                 />
@@ -483,7 +601,9 @@ export default function AdminProductsPage() {
                     min="0"
                     step="0.01"
                     value={form.price}
-                    onChange={(event) => updateField('price', event.target.value)}
+                    onChange={(event) =>
+                      updateField("price", event.target.value)
+                    }
                     placeholder="Leave blank if unconfirmed"
                     className="h-12 w-full border border-white/10 bg-black/20 px-4 text-sm text-champagne outline-none focus:border-gold/50"
                   />
@@ -495,11 +615,15 @@ export default function AdminProductsPage() {
                   </label>
                   <select
                     value={form.status}
-                    onChange={(event) => updateField('status', event.target.value)}
+                    onChange={(event) =>
+                      updateField("status", event.target.value)
+                    }
                     className="h-12 w-full border border-white/10 bg-[#171319] px-4 text-sm text-champagne outline-none focus:border-gold/50"
                   >
                     {Object.entries(STATUS_LABELS).map(([value, label]) => (
-                      <option key={value} value={value}>{label}</option>
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -510,7 +634,9 @@ export default function AdminProductsPage() {
                   <input
                     type="checkbox"
                     checked={form.isFeatured}
-                    onChange={(event) => updateField('isFeatured', event.target.checked)}
+                    onChange={(event) =>
+                      updateField("isFeatured", event.target.checked)
+                    }
                     className="accent-[#C5A15B]"
                   />
                   Feature this product
@@ -520,7 +646,9 @@ export default function AdminProductsPage() {
                   <input
                     type="checkbox"
                     checked={form.isNewArrival}
-                    onChange={(event) => updateField('isNewArrival', event.target.checked)}
+                    onChange={(event) =>
+                      updateField("isNewArrival", event.target.checked)
+                    }
                     className="accent-[#C5A15B]"
                   />
                   Mark as a new arrival
@@ -528,8 +656,8 @@ export default function AdminProductsPage() {
               </div>
 
               <p className="text-xs leading-6 text-white/35">
-                Product images, variations and additional specifications
-                will be added in a later inventory-management step.
+                Product images, variations and additional specifications will be
+                added in a later inventory-management step.
               </p>
 
               {feedback && (
@@ -550,7 +678,7 @@ export default function AdminProductsPage() {
                   type="submit"
                   className="bg-gold px-6 py-3 text-xs font-semibold tracking-wider text-obsidian hover:bg-champagne"
                 >
-                  {editingId ? 'SAVE CHANGES' : 'CREATE PRODUCT'}
+                  {editingId ? "SAVE CHANGES" : "CREATE PRODUCT"}
                 </button>
               </div>
             </form>
@@ -558,5 +686,5 @@ export default function AdminProductsPage() {
         </div>
       )}
     </section>
-  )
+  );
 }
